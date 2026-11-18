@@ -84,8 +84,9 @@ final class CacheManager: ObservableObject {
     /// 递归枚举目录，使用 resolvingSymlinksInPath 校验真实路径，
     /// 并确保目标仍位于预期根目录之内（防止符号链接越界）。
     private func enumerateRecursively(_ root: URL) async -> ([CacheFileEntry], Int64) {
-        await Task.detached(priority: .utility) { [fm] in
-            Self.enumerateSynchronously(root, using: fm)
+        // 不捕获 self 的 fm（主线程隔离属性不能传进 detached 任务），任务内新建实例。
+        await Task.detached(priority: .utility) {
+            Self.enumerateSynchronously(root, using: FileManager())
         }.value
     }
 
