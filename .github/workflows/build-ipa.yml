@@ -1,0 +1,49 @@
+name: Build WQCleanerPro IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-26
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select latest Xcode
+        run: |
+          LATEST_XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using $LATEST_XCODE"
+          sudo xcode-select -s "$LATEST_XCODE"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild archive \
+            -project WQCleanerPro.xcodeproj \
+            -scheme WQCleanerPro \
+            -archivePath build/WQCleanerPro.xcarchive \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/WQCleanerPro.xcarchive/Products/Applications/*.app build/Payload/
+          cd build && zip -r WQCleanerPro-unsigned.ipa Payload
+          ls -lh WQCleanerPro-unsigned.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WQCleanerPro-unsigned
+          path: build/WQCleanerPro-unsigned.ipa
+          if-no-files-found: error
