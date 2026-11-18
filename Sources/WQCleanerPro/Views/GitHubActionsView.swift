@@ -194,4 +194,7 @@ struct GitHubActionsView: View {
     }
 }
 
-extension BuildArtifactKind: CaseIterable, Hashable {}
+extension BuildArtifactKind: CaseIterable, Hashable {
+    // 枚举声明在 GitHubActionsService.swift，跨文件扩展无法自动合成 allCases，须显式给出。
+    static var allCases: [BuildArtifactKind] { [.simulator, .unsignedIPA, .signedIPA] }
+}

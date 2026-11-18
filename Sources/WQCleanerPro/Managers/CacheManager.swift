@@ -85,6 +85,14 @@ final class CacheManager: ObservableObject {
     /// 并确保目标仍位于预期根目录之内（防止符号链接越界）。
     private func enumerateRecursively(_ root: URL) async -> ([CacheFileEntry], Int64) {
         await Task.detached(priority: .utility) { [fm] in
+            Self.enumerateSynchronously(root, using: fm)
+        }.value
+    }
+
+    /// 同步枚举实现：必须是同步上下文——Swift 6.2 起
+    /// `DirectoryEnumerator.makeIterator` 在 async 上下文中不可用，
+    /// 因此把 `for...in enumerator` 放在这个同步静态方法里。
+    nonisolated static func enumerateSynchronously(_ root: URL, using fm: FileManager) -> ([CacheFileEntry], Int64) {
             var result: [CacheFileEntry] = []
             var total: Int64 = 0
 
@@ -120,7 +128,6 @@ final class CacheManager: ObservableObject {
                 ))
             }
             return (result, total)
-        }.value
     }
 
     // MARK: - 清理
